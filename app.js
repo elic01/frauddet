@@ -5,6 +5,25 @@ let darkMode = false;
 let sidebarCollapsed = false;
 let currentData = null;
 
+// Initialize IndexedDB
+let db;
+const request = indexedDB.open('FinFraudDB', 1);
+
+request.onupgradeneeded = (event) => {
+    db = event.target.result;
+    const userStore = db.createObjectStore('users', { keyPath: 'username' });
+    userStore.createIndex('role', 'role', { unique: false });
+};
+
+request.onsuccess = (event) => {
+    db = event.target.result;
+    console.log('IndexedDB initialized successfully.');
+};
+
+request.onerror = (event) => {
+    console.error('IndexedDB initialization failed:', event.target.error);
+};
+
 // Initialize the application when the DOM is loaded
 document.addEventListener('DOMContentLoaded', init);
 
@@ -33,6 +52,7 @@ function init() {
         document.getElementById('dashboard-page').classList.contains('active')) {
         initializeCharts();
         updateDashboard();
+    }
 }
 
 // Set up event listeners
@@ -418,19 +438,22 @@ function toggleSidebar() {
     localStorage.setItem('finfraud_sidebar', sidebarCollapsed ? 'collapsed' : 'expanded');
 }
 
-// Show page
+// Add logging to the showPage function
 function showPage(pageId) {
-    console.log("Showing page:", pageId);
+    console.log("Attempting to show page:", pageId);
     const pages = document.querySelectorAll('.page');
     pages.forEach(page => {
         page.classList.remove('active');
     });
-    
+
     const activePage = document.getElementById(pageId);
     if (activePage) {
         activePage.classList.add('active');
+        console.log("Page shown successfully:", pageId);
+    } else {
+        console.error("Page not found:", pageId);
     }
-    
+
     // If showing dashboard, update user interface
     if (pageId === 'dashboard-page') {
         updateUserInterface();
@@ -475,26 +498,32 @@ function showDashboardPage(pageId) {
         const password = document.getElementById('login-password').value;
         const role = document.getElementById('login-role').value;
         
-        // Simple validation
         if (!username || !password || !role) {
             alert('Please fill in all fields');
             return;
         }
         
-        // In a real application, you would validate credentials against a server
-        // For demo purposes, we'll just accept any input
-        
-        // Save user info to localStorage
-        localStorage.setItem('finfraud_user', username);
-        localStorage.setItem('finfraud_role', role);
-        
-        // Update global variables
-        currentUser = username;
-        currentRole = role;
-        
-        // Show dashboard
-        showPage('dashboard-page');
-        updateUserInterface();
+        const transaction = db.transaction(['users'], 'readonly');
+        const userStore = transaction.objectStore('users');
+        const request = userStore.get(username);
+    
+        request.onsuccess = () => {
+            const user = request.result;
+            if (user && user.password === password && user.role === role) {
+                currentUser = username;
+                currentRole = role;
+                localStorage.setItem('finfraud_user', username);
+                localStorage.setItem('finfraud_role', role);
+                showPage('dashboard-page');
+                updateUserInterface();
+            } else {
+                alert('Invalid credentials. Please try again.');
+            }
+        };
+    
+        request.onerror = () => {
+            alert('Error accessing user data.');
+        };
     }
     
     // Handle register
@@ -506,7 +535,6 @@ function showDashboardPage(pageId) {
         const confirmPassword = document.getElementById('register-confirm-password').value;
         const role = document.getElementById('register-role').value;
         
-        // Simple validation
         if (!username || !password || !confirmPassword || !role) {
             alert('Please fill in all fields');
             return;
@@ -517,20 +545,18 @@ function showDashboardPage(pageId) {
             return;
         }
         
-        // In a real application, you would send registration data to a server
-        // For demo purposes, we'll just accept any input
-        
-        // Save user info to localStorage
-        localStorage.setItem('finfraud_user', username);
-        localStorage.setItem('finfraud_role', role);
-        
-        // Update global variables
-        currentUser = username;
-        currentRole = role;
-        
-        // Show dashboard
-        showPage('dashboard-page');
-        updateUserInterface();
+        const transaction = db.transaction(['users'], 'readwrite');
+        const userStore = transaction.objectStore('users');
+        const request = userStore.add({ username, password, role });
+    
+        request.onsuccess = () => {
+            alert('Registration successful. You can now log in.');
+            showPage('login-page');
+        };
+    
+        request.onerror = () => {
+            alert('Registration failed. Username may already exist.');
+        };
     }
     
     // Update user interface based on role
@@ -1009,22 +1035,122 @@ function showDashboardPage(pageId) {
         showPage('landing-page');
     }
     
-    // Mock chart initialization functions
-    // In a real application, these would use a charting library like Chart.js or D3.js
+    // Add logging to verify chart initialization
     function initializeCharts() {
-        // Initialize Z-Score chart
-        const zScoreChart = document.getElementById('z-score-chart');
-        if (zScoreChart) {
-            zScoreChart.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--secondary-color);">Z-Score trend chart would be rendered here</div>';
+        console.log("Initializing charts...");
+
+        // Z-Score Chart
+        const zScoreCanvas = document.getElementById('zScoreChart');
+        if (zScoreCanvas) {
+            const zScoreCtx = zScoreCanvas.getContext('2d');
+            new Chart(zScoreCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                    datasets: [{
+                        label: 'Z-Score',
+                        data: [2.5, 2.8, 3.0, 2.9, 3.2], 
+                        borderColor: 'rgba(37, 99, 235, 1)',
+                        backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Months'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Z-Score'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            console.log("Z-Score Chart initialized.");
+        } else {
+            console.warn("Z-Score Chart canvas not found.");
         }
-        
-        // Page navigation links
-document.querySelectorAll('[data-page]').forEach(element => {
-    element.addEventListener('click', function(e) {
-        e.preventDefault();
-        const pageId = this.getAttribute('data-page');
-        showPage(pageId);
-    });
-});
+
+        // F-Score Chart
+        const fScoreCanvas = document.getElementById('fScoreChart');
+        if (fScoreCanvas) {
+            const fScoreCtx = fScoreCanvas.getContext('2d');
+            new Chart(fScoreCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                    datasets: [{
+                        label: 'F-Score',
+                        data: [2.0, 2.3, 2.5, 2.7, 3.0], // Replace with dynamic data if available
+                        backgroundColor: 'rgba(16, 185, 129, 0.8)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Months'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'F-Score'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            console.log("F-Score Chart initialized.");
+        } else {
+            console.warn("F-Score Chart canvas not found.");
+        }
+
+        // NPL Ratio Chart
+        const nplRatioCanvas = document.getElementById('nplRatioChart');
+        if (nplRatioCanvas) {
+            const nplRatioCtx = nplRatioCanvas.getContext('2d');
+            new Chart(nplRatioCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Performing Loans', 'Non-Performing Loans'],
+                    datasets: [{
+                        data: [95, 5], // Replace with dynamic data if available
+                        backgroundColor: ['rgba(16, 185, 129, 0.8)', 'rgba(239, 68, 68, 0.8)']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+            console.log("NPL Ratio Chart initialized.");
+        } else {
+            console.warn("NPL Ratio Chart canvas not found.");
+        }
     }
-}

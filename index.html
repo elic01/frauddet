@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FinFraud - Financial Fraud Detection</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --primary-color: #2563eb;
@@ -1785,6 +1788,9 @@
                                 <div class="chart-container" id="z-score-chart">
                                     <!-- Chart will be rendered here -->
                                 </div>
+                                <div class="chart-container">
+                                    <canvas id="zScoreChart"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1872,6 +1878,9 @@
                                 <div class="chart-container" id="f-score-chart">
                                     <!-- Chart will be rendered here -->
                                 </div>
+                                <div class="chart-container">
+                                    <canvas id="fScoreChart"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1958,6 +1967,9 @@
                                 <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Historical NPL Trend</h3>
                                 <div class="chart-container" id="npl-chart">
                                     <!-- Chart will be rendered here -->
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="nplRatioChart"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -2577,7 +2589,7 @@
         </div>
     </div>
     <script src="app.js"></script>
-        </body>
-        </html>
+</body>
+</html>
 
 
